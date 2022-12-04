@@ -1,9 +1,9 @@
+using LinearAlgebra
 """ Implement ICP algorithm using SVD here
     https://www.youtube.com/watch?v=dhzLQfDBx2Q
     https://nbviewer.org/github/niosus/notebooks/blob/master/icp.ipynb
     icp_svd(P, Q, kernel=kernel)
 """
-using LinearAlgebra
 
 """ Calculate correspondences from P to Q
     using 1-nearest neighbors (∀ pᵢ find closest qⱼ)
@@ -12,7 +12,7 @@ function correspondence_idxs(P::Vector{Pt}, Q::Vector{Pt})
     correspondances = Tuple{Int, Int}[]
 
     for (i, p) in enumerate(P)
-        min_dist = -Inf
+        min_dist = Inf
         min_idx = -1
         for (j, q) in enumerate(Q)
             dist = norm(q - p)
@@ -41,10 +41,10 @@ function center_scan(scan::Vector{Pt}, exclude_idxs::Vector{Int}=Int[])
     avg_x /= n
     avg_y /= n
 
-    centered_scan = deepcopy(scan)
-    for i in eachindex(centered_scan)
-        centered_scan[i].x -= avg_x
-        centered_scan[i].y -= avg_y
+    centered_scan = Pt[]
+    for pt in scan
+        centered_pt = Pt([pt.x - avg_x, pt.y - avg_y])
+        push!(centered_scan, centered_pt)
     end
     (centered_scan, [avg_x, avg_y])
 end
@@ -79,7 +79,7 @@ function icp_svd(P, Q, iters=10, kernel= diff -> 1.)
     exclude_idxs = Int[]
 
     for i=1:iters
-        center_of_P, P_centered = center_scan(P, exclude_idxs)
+        P_centered, center_of_P= center_scan(P, exclude_idxs)
         correspondences = correspondence_idxs(P_centered, Q_centered)
 
         cov, exclude_idxs = cross_covariance(P_centered, Q_centered, correspondences, kernel)
@@ -88,16 +88,16 @@ function icp_svd(P, Q, iters=10, kernel= diff -> 1.)
         R = F.U * F.Vt
         t = center_of_Q - R * center_of_P
 
+        for i in eachindex(P)
+            P[i] = R * P[i] + t
+        end
+
         if i == iters
             # TODO: only return a tf if the norm/error is below a certain threshold that
             # indicates a decent scan match was found (or can just return the norm and perform
             # the logic on the slam side)
             tf_mtx = HomoMtx([R t ; 0 0 1])
-            return tf_mtx
-        end
-
-        for i in eachindex(P)
-            P[i] = R * P[i] + t
+            return tf_mtx, P
         end
     end
 end

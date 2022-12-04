@@ -1,7 +1,7 @@
 module SLAM
 
 include("dataloader.jl")
-export read_data, HomoMtx, HomoPt
+export read_data, HomoMtx, HomoPt, Pt
 include("viz.jl")
 export plot_scan, viz_scans
 include("frontend.jl")
