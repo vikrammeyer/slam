@@ -1,9 +1,10 @@
 using Plots
 function plot_scan(scan)
-    xs = []
-    ys = []
+    xs = Float64[]
+    ys = Float64[]
+
     # scan is stored as homogeneous point
-    for (x,y,w) in scan
+    for (x,y,_) in scan
         push!(xs, x)
         push!(ys, y)
     end
@@ -15,7 +16,7 @@ end
 
 function viz_scans(data, gif_output_file="laser.gif")
     anim = @animate for i in eachindex(data)
-        plot_scan(data[i][2])
+        plot_scan(data[i].points)
     end
     gif(anim, gif_output_file, fps=1)
 end
