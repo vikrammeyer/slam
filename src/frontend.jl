@@ -1,12 +1,14 @@
-using LinearAlgebra
 """ Implement ICP algorithm using SVD here
+    https://www.youtube.com/watch?v=dhzLQfDBx2Q
     https://nbviewer.org/github/niosus/notebooks/blob/master/icp.ipynb
+    icp_svd(P, Q, kernel=kernel)
 """
+using LinearAlgebra
 
 """ Calculate correspondences from P to Q
     using 1-nearest neighbors (∀ pᵢ find closest qⱼ)
 """
-function correspondence_indxs(P::Vector{Pt}, Q::Vector{Pt})
+function correspondence_idxs(P::Vector{Pt}, Q::Vector{Pt})
     correspondances = Tuple{Int, Int}[]
 
     for (i, p) in enumerate(P)
@@ -24,9 +26,32 @@ function correspondence_indxs(P::Vector{Pt}, Q::Vector{Pt})
     correspondances
 end
 
+function center_scan(scan::Vector{Pt}, exclude_idxs::Vector{Int}=Int[])
+    avg_x, avg_y = 0.,0.
+    n = 0
+    for (i, pt) in enumerate(scan)
+        if i in exclude_idxs
+            continue
+        end
+
+        avg_x += pt.x
+        avg_y += pt.y
+        n += 1
+    end
+    avg_x /= n
+    avg_y /= n
+
+    centered_scan = deepcopy(scan)
+    for i in eachindex(centered_scan)
+        centered_scan[i].x -= avg_x
+        centered_scan[i].y -= avg_y
+    end
+    (centered_scan, [avg_x, avg_y])
+end
+
 function cross_covariance(P, Q, correspondences, kernel= diff -> 1)
     cov = zeros(2,2)
-    exclude_indxs = Int[]
+    exclude_idxs = Int[]
 
     for (i, j) in correspondences
         p = P[i]
@@ -34,26 +59,57 @@ function cross_covariance(P, Q, correspondences, kernel= diff -> 1)
 
         weight = kernel(p - q)
         if weight < 0.01
-            push!(exclude_indxs, i)
+            push!(exclude_idxs, i)
         end
 
-        cov += weight * q * transpose(p) # (2 x 1 @ 1 x 2 = 2 x 2)
+        cov += weight * q * transpose(p) # weighted outer product
     end
 
-    (cov, exclude_indxs)
+    (cov, exclude_idxs)
 end
 
-# function center_data(data)
+"""
+Find homogeneous transform between two scans
+Iteratively apply the SVD decomposition on the cross covariance since
+the correspondences are not optimal.
 
-#     return (center, data - center)
-# end
+"""
+function icp_svd(P, Q, iters=10, kernel= diff -> 1.)
+    Q_centered, center_of_Q = center_scan(Q)
+    exclude_idxs = Int[]
+
+    for i=1:iters
+        center_of_P, P_centered = center_scan(P, exclude_idxs)
+        correspondences = correspondence_idxs(P_centered, Q_centered)
+
+        cov, exclude_idxs = cross_covariance(P_centered, Q_centered, correspondences, kernel)
+
+        F = svd(cov)
+        R = F.U * F.Vt
+        t = center_of_Q - R * center_of_P
+
+        if i == iters
+            # TODO: only return a tf if the norm/error is below a certain threshold that
+            # indicates a decent scan match was found (or can just return the norm and perform
+            # the logic on the slam side)
+            tf_mtx = HomoMtx([R t ; 0 0 1])
+            return tf_mtx
+        end
+
+        for i in eachindex(P)
+            P[i] = R * P[i] + t
+        end
+    end
+end
 
 
-# function icp_iterative(P, Q, iters=25)
-#     center_of_Q, Q_centered = center_data(Q)
-
-#     for i=1:iters
-#         center_of_P, P_centered = center_data(P)
-#         correspondences = get_correspondence_indices(P_centered, Q_centered)
-
-# end
+""" Simple kernel that ignores points far away (high error)
+    TODO: make it a litle less strict (softer scaling)
+"""
+function kernel(error, threshold=10)
+    ret = 0.
+    if norm(error) < threshold
+        ret = 1.
+    end
+    ret
+end

@@ -1,4 +1,3 @@
-""" use Caesar.jl to perform the graph optimization
+""" Construct the pose graph and solve using Caesar
 """
-
-
+using Caesar
