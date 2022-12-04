@@ -6,17 +6,17 @@ HomoMtx= SMatrix{3, 3, Float64}
 
 struct Measurement
     odom::HomoMtx
-    points::Vector{HomoPt}
+    points::Vector{Pt}
 end
 
-polar_to_cartesian(r, θ) = SA[r * cos(θ), r * sin(θ)]
+polar_to_cartesian(r, θ) = Pt([r * cos(θ), r * sin(θ)])
 
 cartesian_to_homogeneous(x, y) = HomoPt([x, y, 1])
 
 odom_tf_mtx(x, y, ϕ) = HomoMtx([cos(ϕ) -sin(ϕ) x; sin(ϕ) cos(ϕ) y; 0 0 1])
 
-function homogeneous_points(scan::Vector{Float64})
-    points = HomoPt[]
+function euclidean_points(scan::Vector{Float64})
+    points = Pt[]
 
     # lidar sweeps from -π/2 to π/2 where +x-axis is at 0 rad
     beam_angle_increment = π/180
@@ -24,8 +24,7 @@ function homogeneous_points(scan::Vector{Float64})
 
     nonzero_range(x) = x > 0.05
     for range in filter(nonzero_range, scan)
-        homo_point = cartesian_to_homogeneous(polar_to_cartesian(range, beam_angle)...)
-        push!(points, homo_point)
+        push!(points, polar_to_cartesian(range, beam_angle))
         beam_angle += beam_angle_increment
     end
 
@@ -45,7 +44,7 @@ function read_data(odom_file_name="data/intel_ODO.txt", scan_file_name="data/int
         @assert typeof(scan) == Vector{Float64}
 
         odom_transformation = odom_tf_mtx(odom_x, odom_y, odom_ϕ)
-        scan_points = homogeneous_points(scan)
+        scan_points = euclidean_points(scan)
 
         push!(measurements, Measurement(odom_transformation, scan_points))
     end
