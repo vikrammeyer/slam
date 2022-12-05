@@ -67,10 +67,11 @@ function constructGraph(graph)
         nsym = Symbol("x$(i + 1)")
         pose = get_pose(graph, i+2)
         # addVariable!(fg, nsym, Pose2)
-        # pp = Pose2Pose2(MvNormal([10.0;0; (i % 2 == 0 ? -pi/3 : pi/3)], Matrix(Diagonal([0.1;0.1;0.1].^2))))
-        pp = Pose2Pose2(MvNormal([pose[1], pose[2], pose[3]], 0.0001*Matrix(Diagonal([1;1;1]))))
+        pp = Pose2Pose2(MvNormal([10.0;0; (i % 2 == 0 ? -pi/3 : pi/3)], Matrix(Diagonal([0.1;0.1;0.1].^2))))
+        # pp = Pose2Pose2(MvNormal([pose[1], pose[2], pose[3]], 0.0001*Matrix(Diagonal([1;1;1]))))
         addFactor!(fg, [psym;nsym], pp)
     end
+    @infiltrate
     fg
 end
 
@@ -81,7 +82,8 @@ function loadData(data)
         push!(vertices, vertex) 
     end
     # graph = _Graph(vertices, length(data))
-    graph = _Graph(vertices, 100)
+    # graph = _Graph(vertices, 100)
+    graph = _Graph(vertices, 10)
     return graph
 end
 
