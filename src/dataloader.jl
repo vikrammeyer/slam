@@ -15,6 +15,8 @@ cartesian_to_homogeneous(x, y) = HomoPt([x, y, 1])
 
 odom_tf_mtx(x, y, ϕ) = HomoMtx([cos(ϕ) -sin(ϕ) x; sin(ϕ) cos(ϕ) y; 0 0 1])
 
+mtx_tf_odom(M) = HomoPt([M[1,:][end], M[2,:][end], acos(M[1])])
+
 function euclidean_points(scan::Vector{Float64})
     points = Pt[]
 
