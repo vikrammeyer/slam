@@ -4,55 +4,41 @@ using RoMEPlotting
 
 
 struct Edge
-    vertex_ids::Vector{Int64}
-    information::Vector{any}
-    estimate::Array{Float64, 2}
-    vertices::Array{Float64, 2}
+    vertex_id_1::Int64
+    vertex_id_2::Int64
+    points::Vector{Pt}
+    tf_matrix::SMatrix{3, 3, Float64}
 end
-
-function calc_error(edge::Edge)
-    """TODO"""
-end
-
-function calc_chi2(edge::Edge)
-    """TODO"""
-end
-
-function calc_chi2_gradient(edge::Edge)
-    """TODO""" 
-end
-
-function calc_jac(edge::Edge)
-    """TODO"""
-end
-
-function calc_error(edge::Edge)
-    """TODO""" 
-end
-
 
 
 struct Vertex
     id::Int64
     pose::Array{Float64, 2}
+    points::Vector{Pt}
 end
 
 
 
 mutable struct _Graph
-    # edges::Edge
     vertices::Vector{Vertex}
     length::Int64
-    # chi2::Float64
-    # gradient::Vector{any}
+    numberofvertex::Int64
+    edges::Vector{Edge}
+    numberofedges::Int64
 end 
 
 
-function addEdges(graph)
+function addEdge(graph, startidx, endidx, points, tf_mtx)
     """TODO"""
+    edge = Edge(startidx, endidx, points, tf_mtx)
+    graph.numberofedges += 1
+    push!(graph.edges, edge)
 end
 
 function constructGraph(graph)
+    """
+    Wrapper to construct Caesar.jl factor graph from _Graph struct
+    """
     fg = initfg()
     lengthTraj = graph.length
     firstObs = get_pose(graph, 1)
@@ -75,6 +61,17 @@ function constructGraph(graph)
     fg
 end
 
+function initGraph(dataset)
+    firstObs = dataset[1]
+    vertices = Vector{Vertex}(undef, 0)
+    edges = Vector{Vertex}(undef, 0)
+    vertex = Vertex(1, firstObs.odom, firstObs.points)
+    lengthTraj = length(dataset)
+    push!(vertices, vertex)
+    graph = _Graph(vertices, lengthTraj, 1, edges, 0)
+    graph
+end
+
 function loadData(data)
     vertices = Vertex[]
     for (idx, datapt) in enumerate(data)
@@ -87,20 +84,21 @@ function loadData(data)
     return graph
 end
 
-function addVertex(graph, id, pose)
-    vertex = Vertex(id, pose)
+function addVertex(graph, id, pose, points)
+    vertex = Vertex(id, pose, points)
+    graph.numberofvertex += 1
     push!(graph.vertices, vertex)
 end
 
+function get_points(graph::_Graph, idx::Int64)
+    return graph.vertices[idx].points
+end
 
 function get_pose(graph::_Graph, idx::Int64)
     """TODO"""
     return mtx_tf_odom(graph.vertices[idx].pose)
 end
 
-function cal_chi2(graph::_Graph)
-    """TODO"""
-end
 
 function optimize(graph::_Graph, max_itr)
     """TODO"""

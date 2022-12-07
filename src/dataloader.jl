@@ -24,7 +24,8 @@ function euclidean_points(scan::Vector{Float64})
     beam_angle_increment = π/180
     beam_angle = -π/2 # measurements start from bottom and sweep up
 
-    nonzero_range(x) = x > 0.05
+    # nonzero_range(x) = x > 0.05
+    nonzero_range(x) = x >= 0.00
     for range in filter(nonzero_range, scan)
         push!(points, polar_to_cartesian(range, beam_angle))
         beam_angle += beam_angle_increment

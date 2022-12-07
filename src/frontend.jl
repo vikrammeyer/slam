@@ -92,12 +92,23 @@ function icp_svd(P, Q, iters=10, kernel= diff -> 1.)
             P[i] = R * P[i] + t
         end
 
+        total = 0
+        for (p, q) in zip(P, Q)
+            if all(abs.(p) .<= 3.0) && all(abs.(q) .<= 3.0) #only look at points at most 3 meters aways (helps with reducing noise)
+                total += sum((p - q).^2) #l2 norm
+            else
+                continue
+            end
+            # total += sum((p - q).^2) #without weight toning
+        end
+        norm = sqrt(total)
+
         if i == iters
             # TODO: only return a tf if the norm/error is below a certain threshold that
             # indicates a decent scan match was found (or can just return the norm and perform
             # the logic on the slam side)
             tf_mtx = HomoMtx([R t ; 0 0 1])
-            return tf_mtx, P
+            return tf_mtx, P, norm
         end
     end
 end

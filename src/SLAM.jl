@@ -8,5 +8,9 @@ include("frontend.jl")
 export correspondence_idxs, center_scan, cross_covariance, icp_svd, kernel
 # using RoMEPlotting, Caesar
 include("graph.jl")
+export constructGraph, loadData, addVertex, get_pose
+include("../scripts/run.jl")
+export _run
+
 
 end # module SLAM
