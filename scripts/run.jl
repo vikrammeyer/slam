@@ -47,21 +47,24 @@ function _run()
             prev_odom = data.odom
             push!(lasers, data.points)
 
-            #test loop closure every 10 vertices added...
+            #test loop closure every 2 vertices added...
             if (graph.numberofvertex >= 2) && vertex_id % 2 == 0
                 currentIdx, landmarkIdx, P, matrix_T, closeFlag = test_loop_closer(lasers, vertex_id, B)
                 if closeFlag && abs(landmarkIdx - currentIdx) > 1
                     addEdge(graph, landmarkIdx, currentIdx, P, matrix_T) #collects all valid transformations and points
-                    println("similar shape: $landmarkIdx , $currentIdx")
+                    println("similar features: $landmarkIdx , $currentIdx")
                     plot_scans(get_points(graph, currentIdx), get_points(graph, landmarkIdx)) #to test if point maps look similar
                     closeFlag = false
-                    # @infiltrate
+                    @infiltrate
                 end
             end 
             #draw map pose results every # results... 
         end
         
     end
+
+    #create Caesar graph
+
 
     # graph = loadData(data)
     # fg = constructGraph(graph)
