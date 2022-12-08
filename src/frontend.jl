@@ -77,16 +77,25 @@ the correspondences are not optimal.
 function icp_svd(P, Q, iters=10, kernel= diff -> 1.)
     Q_centered, center_of_Q = center_scan(Q)
     exclude_idxs = Int[]
-
+    tf_mtx = nothing
+    # @infiltrate
     for i=1:iters
         P_centered, center_of_P= center_scan(P, exclude_idxs)
         correspondences = correspondence_idxs(P_centered, Q_centered)
 
         cov, exclude_idxs = cross_covariance(P_centered, Q_centered, correspondences, kernel)
+        if i == 1
+            tf_mtx = nothing
+            F = svd(cov)
+            R = F.U * F.Vt
+            t = center_of_Q - R * center_of_P
+            tf_mtx = HomoMtx([R t ; 0 0 1])
+        end
 
         F = svd(cov)
         R = F.U * F.Vt
         t = center_of_Q - R * center_of_P
+        # @infiltrate
 
         for i in eachindex(P)
             P[i] = R * P[i] + t
@@ -107,7 +116,8 @@ function icp_svd(P, Q, iters=10, kernel= diff -> 1.)
             # TODO: only return a tf if the norm/error is below a certain threshold that
             # indicates a decent scan match was found (or can just return the norm and perform
             # the logic on the slam side)
-            tf_mtx = HomoMtx([R t ; 0 0 1])
+            # tf_mtx = HomoMtx([R t ; 0 0 1])
+            # @infiltrate
             return tf_mtx, P, norm
         end
     end
@@ -123,4 +133,20 @@ function kernel(error, threshold=10)
         ret = 1.
     end
     ret
+end
+
+
+function tf_points(points, tf_matrix)
+    tf_points = Pt[]
+    angle = 0
+    # @infiltrate
+    # tf_matrix = convert(MMatrix, tf_matrix)
+    # tf_matrix[1:2,1:2] = 1* Matrix(I, 2, 2)
+    for pt in points
+        newPt =  tf_matrix * cartesian_to_homogeneous(pt[1], pt[2])
+        tf_Pt = Pt([newPt[1], newPt[2]])
+        push!(tf_points, tf_Pt)
+    end
+    # @infiltrate
+    tf_points
 end

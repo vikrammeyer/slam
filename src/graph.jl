@@ -11,6 +11,7 @@ struct Vertex
     id::Int64
     pose::Array{Float64, 2}
     points::Vector{Pt}
+    global_tf_matrix::SMatrix{3, 3, Float64}
 end
 
 mutable struct _Graph
@@ -25,7 +26,7 @@ function initGraph(dataset)
     firstObs = dataset[1]
     vertices = Vector{Vertex}(undef, 0)
     edges = Vector{Vertex}(undef, 0)
-    vertex = Vertex(1, firstObs.odom, firstObs.points)
+    vertex = Vertex(1, firstObs.odom, firstObs.points, odom_tf_mtx(0, 0, 0))
     lengthTraj = length(dataset)
     push!(vertices, vertex)
     graph = _Graph(vertices, lengthTraj, 1, edges, 0)
@@ -40,8 +41,8 @@ function addEdge(graph, startidx, endidx, points, tf_mtx)
 end
 
 
-function addVertex(graph, id, pose, points)
-    vertex = Vertex(id, pose, points)
+function addVertex(graph, id, pose, points, global_tfm)
+    vertex = Vertex(id, pose, points, global_tfm)
     graph.numberofvertex += 1
     push!(graph.vertices, vertex)
 end
